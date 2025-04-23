@@ -15,27 +15,38 @@ import nltk
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import os
+import sys
+import logging
 
-# Make sure NLTK data is properly downloaded
-# First, check if the directory exists
-nltk_data_dir = os.path.expanduser('~/nltk_data')
-os.makedirs(nltk_data_dir, exist_ok=True)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
-# Check if punkt and punkt_tab are already downloaded
-punkt_dir = os.path.join(nltk_data_dir, 'tokenizers', 'punkt')
-punkt_tab_dir = os.path.join(nltk_data_dir, 'tokenizers', 'punkt_tab')
+def setup_nltk():
+    """Setup NLTK data needed for tokenization"""
+    try:
+        # Make sure NLTK data is properly downloaded
+        nltk_data_dir = os.path.expanduser('~/nltk_data')
+        os.makedirs(nltk_data_dir, exist_ok=True)
 
-if not os.path.exists(punkt_dir):
-    print("Downloading NLTK punkt tokenizer data...")
-    nltk.download('punkt', download_dir=nltk_data_dir, quiet=False)
-else:
-    print("NLTK punkt tokenizer data already exists.")
+        # Check if punkt is already downloaded
+        punkt_dir = os.path.join(nltk_data_dir, 'tokenizers', 'punkt')
+        if not os.path.exists(punkt_dir):
+            logger.info("Downloading NLTK punkt tokenizer data...")
+            nltk.download('punkt', download_dir=nltk_data_dir, quiet=True)
+        else:
+            logger.info("NLTK punkt tokenizer data already exists.")
 
-# Also make sure punkt_tab is downloaded
-nltk.download('punkt', download_dir=nltk_data_dir, quiet=False)
-# For punkt_tab, we need to download the whole punkt package
-print("Downloading additional NLTK resources needed for tokenization...")
-nltk.download('all', download_dir=nltk_data_dir, quiet=False)
+        return True
+    except Exception as e:
+        logger.error(f"Error setting up NLTK: {e}")
+        return False
 
 def parse_arguments():
     """Parse command line arguments"""
@@ -48,12 +59,18 @@ def parse_arguments():
                         help='Target language code (default: fr)')
     parser.add_argument('--num_examples', type=int, default=10,
                         help='Number of examples to translate (default: 10)')
+    parser.add_argument('--input_text', type=str, default=None,
+                        help='Optional: Single sentence to translate (overrides dataset examples)')
     parser.add_argument('--save_to_hub', action='store_true',
                         help='Push model to Hugging Face Hub')
     parser.add_argument('--hub_model_id', type=str, default=None,
                         help='Model ID for Hugging Face Hub (required if save_to_hub=True)')
     parser.add_argument('--hub_token', type=str, default=None,
                         help='Hugging Face Hub token (required if save_to_hub=True)')
+    parser.add_argument('--output_dir', type=str, default='./output',
+                        help='Directory to save output files (default: ./output)')
+    parser.add_argument('--verbose', action='store_true',
+                        help='Enable verbose output')
     return parser.parse_args()
 
 def load_translation_model(model_name, source, target):
@@ -61,12 +78,13 @@ def load_translation_model(model_name, source, target):
     try:
         # Try to use the generic pipeline if available
         task = f"translation_{source}_to_{target}"
+        logger.info(f"Loading model {model_name} for {task}...")
         translator = pipeline(task, model=model_name)
-        print(f"✅ Loaded model {model_name} for {task}")
+        logger.info(f"✅ Loaded model {model_name} for {task}")
         return translator
     except Exception as e:
-        print(f"⚠️ Couldn't load generic pipeline: {e}")
-        print("ℹ️ Loading model and tokenizer manually...")
+        logger.warning(f"⚠️ Couldn't load generic pipeline: {e}")
+        logger.info("ℹ️ Loading model and tokenizer manually...")
         
         # Manual loading
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
@@ -79,12 +97,12 @@ def load_translation_model(model_name, source, target):
             return [{"translation_text": tokenizer.decode(output, skip_special_tokens=True)} 
                     for output in outputs]
         
-        print(f"✅ Manually loaded model and tokenizer for {model_name}")
+        logger.info(f"✅ Manually loaded model and tokenizer for {model_name}")
         return translate
 
 def get_evaluation_dataset(source, target, num_examples=10):
     """Load a parallel dataset for evaluation"""
-    print(f"📚 Loading evaluation dataset ({source}-{target})...")
+    logger.info(f"📚 Loading evaluation dataset ({source}-{target})...")
     
     # Dictionary of example translations for common language pairs
     examples_by_lang_pair = {
@@ -131,7 +149,7 @@ def get_evaluation_dataset(source, target, num_examples=10):
     
     # Try to find pre-defined examples for this language pair
     if lang_pair in examples_by_lang_pair:
-        print(f"Using pre-defined examples for {lang_pair}")
+        logger.info(f"Using pre-defined examples for {lang_pair}")
         return examples_by_lang_pair[lang_pair][:num_examples]
     
     # Try to load from WMT datasets if supported
@@ -148,15 +166,15 @@ def get_evaluation_dataset(source, target, num_examples=10):
                 dataset = load_dataset("opus_books", f"{source}-{target}", split="test[:100]")
                 return [(example[source], example[target]) for example in dataset[:num_examples]]
             except Exception as e:
-                print(f"⚠️ Could not load opus_books dataset: {e}")
+                logger.warning(f"⚠️ Could not load opus_books dataset: {e}")
                 # Fall back to pre-defined examples
-                print("⚠️ No dataset found for this language pair. Using example sentences.")
+                logger.warning("⚠️ No dataset found for this language pair. Using example sentences.")
                 if 'en-fr' in examples_by_lang_pair:
                     return examples_by_lang_pair['en-fr'][:num_examples]
                 else:
                     return examples_by_lang_pair['en-de'][:num_examples]
     except Exception as e:
-        print(f"⚠️ Error loading dataset: {e}")
+        logger.warning(f"⚠️ Error loading dataset: {e}")
         # Fall back to pre-defined examples if available
         if lang_pair in examples_by_lang_pair:
             return examples_by_lang_pair[lang_pair][:num_examples]
@@ -176,8 +194,8 @@ def compute_bleu_score(reference, hypothesis):
         return sentence_bleu([reference_tokens], hypothesis_tokens)
     except LookupError:
         # If NLTK data is not found, try downloading it again
-        print("⚠️ NLTK data not found. Attempting to download again...")
-        nltk.download('punkt', download_dir=nltk_data_dir, quiet=False)
+        logger.warning("⚠️ NLTK data not found. Attempting to download again...")
+        nltk.download('punkt')
         # Try again after downloading
         reference_tokens = nltk.word_tokenize(reference.lower())
         hypothesis_tokens = nltk.word_tokenize(hypothesis.lower())
@@ -188,7 +206,7 @@ def translate_and_evaluate(translator, examples, source, target):
     results = []
     bleu_scores = []
     
-    print(f"🔄 Translating {len(examples)} examples from {source} to {target}...")
+    logger.info(f"🔄 Translating {len(examples)} examples from {source} to {target}...")
     
     for source_text, reference_text in tqdm(examples):
         # Translate the source text
@@ -215,8 +233,25 @@ def translate_and_evaluate(translator, examples, source, target):
     
     return results, bleu_scores
 
-def visualize_bleu_scores(bleu_scores):
+def translate_single_text(translator, text):
+    """Translate a single text input"""
+    # Translate the text
+    if callable(translator):
+        # For custom translate function
+        translation_output = translator(text)
+        translated_text = translation_output[0]['translation_text']
+    else:
+        # For pipeline
+        translation_output = translator(text, max_length=100)
+        translated_text = translation_output[0]['translation_text']
+    
+    return translated_text
+
+def visualize_bleu_scores(bleu_scores, output_dir):
     """Visualize BLEU scores"""
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, 'bleu_scores_distribution.png')
+    
     plt.figure(figsize=(10, 6))
     plt.hist(bleu_scores, bins=10, alpha=0.7, color='skyblue')
     plt.axvline(x=np.mean(bleu_scores), color='red', linestyle='--', 
@@ -226,66 +261,128 @@ def visualize_bleu_scores(bleu_scores):
     plt.title('Distribution of BLEU Scores')
     plt.legend()
     plt.grid(True, alpha=0.3)
-    plt.savefig('bleu_scores_distribution.png')
-    print("📊 BLEU score distribution saved to 'bleu_scores_distribution.png'")
+    plt.savefig(output_file)
+    logger.info(f"📊 BLEU score distribution saved to '{output_file}'")
 
 def push_to_hub(model_name, hub_model_id, hub_token):
     """Push model to Hugging Face Hub"""
-    from huggingface_hub import notebook_login
-    import torch
+    try:
+        from huggingface_hub import login
+        import torch
+        
+        if hub_token:
+            login(hub_token)
+        else:
+            login()
+        
+        logger.info(f"🚀 Pushing model to Hugging Face Hub as {hub_model_id}...")
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        
+        # Save model and tokenizer to Hub
+        model.push_to_hub(hub_model_id)
+        tokenizer.push_to_hub(hub_model_id)
+        
+        logger.info(f"✅ Model successfully pushed to https://huggingface.co/{hub_model_id}")
+        return True
+    except Exception as e:
+        logger.error(f"❌ Error pushing model to Hub: {e}")
+        return False
+
+def save_results_to_file(results, avg_bleu, output_dir):
+    """Save translation results to a file"""
+    os.makedirs(output_dir, exist_ok=True)
+    output_file = os.path.join(output_dir, 'translation_results.txt')
     
-    if hub_token:
-        notebook_login(hub_token)
-    else:
-        notebook_login()
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write("Translation Results:\n")
+        f.write("=" * 80 + "\n")
+        for i, result in enumerate(results):
+            f.write(f"Example {i+1}:\n")
+            f.write(f"Source:     {result['source']}\n")
+            f.write(f"Reference:  {result['reference']}\n")
+            f.write(f"Translation: {result['translation']}\n")
+            f.write(f"BLEU Score: {result['bleu']:.4f}\n")
+            f.write("-" * 80 + "\n")
+        
+        f.write(f"\nAverage BLEU Score: {avg_bleu:.4f}\n")
     
-    print(f"🚀 Pushing model to Hugging Face Hub as {hub_model_id}...")
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    
-    # Save model and tokenizer to Hub
-    model.push_to_hub(hub_model_id)
-    tokenizer.push_to_hub(hub_model_id)
-    
-    print(f"✅ Model successfully pushed to https://huggingface.co/{hub_model_id}")
+    logger.info(f"💾 Results saved to '{output_file}'")
 
 def main():
     """Main function"""
+    # Parse arguments
     args = parse_arguments()
     
-    # Load translation model
-    translator = load_translation_model(args.model, args.source, args.target)
+    # Set logging level
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
     
-    # Get evaluation dataset
-    examples = get_evaluation_dataset(args.source, args.target, args.num_examples)
+    # Setup NLTK
+    if not setup_nltk():
+        logger.error("Failed to set up NLTK. Exiting.")
+        return 1
     
-    # Translate and evaluate
-    results, bleu_scores = translate_and_evaluate(translator, examples, args.source, args.target)
+    # Create output directory
+    os.makedirs(args.output_dir, exist_ok=True)
     
-    # Display results
-    print("\n🔍 Translation Results:")
-    print("=" * 80)
-    for i, result in enumerate(results):
-        print(f"Example {i+1}:")
-        print(f"Source:     {result['source']}")
-        print(f"Reference:  {result['reference']}")
-        print(f"Translation: {result['translation']}")
-        print(f"BLEU Score: {result['bleu']:.4f}")
-        print("-" * 80)
-    
-    # Calculate and display average BLEU score
-    avg_bleu = np.mean(bleu_scores)
-    print(f"📈 Average BLEU Score: {avg_bleu:.4f}")
-    
-    # Visualize BLEU scores
-    visualize_bleu_scores(bleu_scores)
-    
-    # Push to Hub if requested
-    if args.save_to_hub:
-        if not args.hub_model_id:
-            print("❌ Error: hub_model_id is required when save_to_hub=True")
-            return
-        push_to_hub(args.model, args.hub_model_id, args.hub_token)
+    try:
+        # Load translation model
+        translator = load_translation_model(args.model, args.source, args.target)
+        
+        # If input_text is provided, just translate that text
+        if args.input_text:
+            translated_text = translate_single_text(translator, args.input_text)
+            print("\n🔠 Translation Result:")
+            print(f"Source: {args.input_text}")
+            print(f"Translation: {translated_text}")
+            
+            # Save to output file
+            with open(os.path.join(args.output_dir, 'single_translation.txt'), 'w', encoding='utf-8') as f:
+                f.write(f"Source: {args.input_text}\n")
+                f.write(f"Translation: {translated_text}\n")
+            
+            logger.info(f"💾 Single translation saved to '{os.path.join(args.output_dir, 'single_translation.txt')}'")
+        else:
+            # Get evaluation dataset
+            examples = get_evaluation_dataset(args.source, args.target, args.num_examples)
+            
+            # Translate and evaluate
+            results, bleu_scores = translate_and_evaluate(translator, examples, args.source, args.target)
+            
+            # Display results
+            print("\n🔍 Translation Results:")
+            print("=" * 80)
+            for i, result in enumerate(results):
+                print(f"Example {i+1}:")
+                print(f"Source:     {result['source']}")
+                print(f"Reference:  {result['reference']}")
+                print(f"Translation: {result['translation']}")
+                print(f"BLEU Score: {result['bleu']:.4f}")
+                print("-" * 80)
+            
+            # Calculate and display average BLEU score
+            avg_bleu = np.mean(bleu_scores)
+            print(f"📈 Average BLEU Score: {avg_bleu:.4f}")
+            
+            # Visualize BLEU scores
+            visualize_bleu_scores(bleu_scores, args.output_dir)
+            
+            # Save results to file
+            save_results_to_file(results, avg_bleu, args.output_dir)
+        
+        # Push to Hub if requested
+        if args.save_to_hub:
+            if not args.hub_model_id:
+                logger.error("❌ Error: hub_model_id is required when save_to_hub=True")
+                return 1
+            if not push_to_hub(args.model, args.hub_model_id, args.hub_token):
+                return 1
+        
+        return 0
+    except Exception as e:
+        logger.error(f"❌ Error in main function: {e}")
+        return 1
 
 if __name__ == "__main__":
-    main() 
+    sys.exit(main()) 

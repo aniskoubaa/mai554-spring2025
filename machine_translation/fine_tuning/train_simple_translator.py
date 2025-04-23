@@ -8,7 +8,7 @@ MAI554 Deep Learning Course
 This script demonstrates:
 1. Loading a pre-trained transformer model for translation
 2. Visualizing the model architecture
-3. Downloading a dataset (English-French or English-Arabic)
+3. Downloading a dataset (English-French, French-English, English-Arabic, Arabic-English)
 4. Fine-tuning the model on this dataset
 5. Performing inference and evaluation with BLEU score
 """
@@ -79,7 +79,7 @@ def prepare_dataset(language_pair="en-fr", max_samples=5000):
     src_lang, tgt_lang = language_pair.split('-')
     
     # Determine which dataset to use based on language pair
-    if language_pair == "en-fr":
+    if language_pair in ["en-fr", "fr-en"]:
         # Load English-French WMT dataset (smaller subset for educational purposes)
         raw_datasets = load_dataset("wmt14", "fr-en", split="train[:5000]")
         # Reorganize into train/validation/test
@@ -93,7 +93,12 @@ def prepare_dataset(language_pair="en-fr", max_samples=5000):
         # Fix column names to match our expectation
         datasets = datasets.rename_column("translation.en", "en")
         datasets = datasets.rename_column("translation.fr", "fr")
-    elif language_pair == "en-ar":
+        
+        # If target is French-English, swap the source and target
+        if language_pair == "fr-en":
+            # We don't need to swap columns, just use them differently in training
+            pass
+    elif language_pair in ["en-ar", "ar-en"]:
         # Load English-Arabic dataset
         raw_datasets = load_dataset("opus100", "en-ar", split="train[:5000]")
         train_val_test = raw_datasets.train_test_split(test_size=0.2)
@@ -192,22 +197,60 @@ def compute_metrics(model, tokenizer, test_dataset, src_lang, tgt_lang):
     
     return bleu_score
 
+def get_test_sentences(src_lang):
+    """Get test sentences in the source language"""
+    if src_lang == "en":
+        return [
+            "Hello, how are you doing today?",
+            "Machine learning is transforming the world.",
+            "I would like to learn a new language.",
+            "Artificial intelligence can help solve complex problems."
+        ]
+    elif src_lang == "fr":
+        return [
+            "Bonjour, comment allez-vous aujourd'hui?",
+            "L'apprentissage automatique transforme le monde.",
+            "Je voudrais apprendre une nouvelle langue.",
+            "L'intelligence artificielle peut aider à résoudre des problèmes complexes."
+        ]
+    elif src_lang == "ar":
+        return [
+            "مرحبا، كيف حالك اليوم؟",
+            "التعلم الآلي يغير العالم.",
+            "أود أن أتعلم لغة جديدة.",
+            "يمكن للذكاء الاصطناعي المساعدة في حل المشكلات المعقدة."
+        ]
+    else:
+        return ["Test sentence"] * 3
+
 def main():
     # Choose language pair
     print("🌍 Welcome to the Simple Machine Translation Trainer!")
     print("This script demonstrates training a transformer-based translation model.")
     print("\nChoose a language pair:")
-    print("1. English-French (en-fr)")
-    print("2. English-Arabic (en-ar)")
+    print("1. English to French (en-fr)")
+    print("2. French to English (fr-en)")
+    print("3. English to Arabic (en-ar)")
+    print("4. Arabic to English (ar-en)")
     
-    choice = input("Enter choice (1/2) [default=1]: ").strip() or "1"
-    language_pair = "en-fr" if choice == "1" else "en-ar"
+    choice = input("Enter choice (1/2/3/4) [default=1]: ").strip() or "1"
     
-    # Determine appropriate pre-trained model based on language pair
-    if language_pair == "en-fr":
+    if choice == "1":
+        language_pair = "en-fr"
         model_name = "Helsinki-NLP/opus-mt-en-fr"
-    else:  # en-ar
+    elif choice == "2":
+        language_pair = "fr-en" 
+        model_name = "Helsinki-NLP/opus-mt-fr-en"
+    elif choice == "3":
+        language_pair = "en-ar"
         model_name = "Helsinki-NLP/opus-mt-en-ar"
+    elif choice == "4":
+        language_pair = "ar-en"
+        model_name = "Helsinki-NLP/opus-mt-ar-en"
+    else:
+        print("Invalid choice. Using default: English to French")
+        language_pair = "en-fr"
+        model_name = "Helsinki-NLP/opus-mt-en-fr"
     
     print(f"\n🔄 Loading pre-trained model: {model_name}")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -265,22 +308,17 @@ def main():
     tokenizer.save_pretrained(model_save_path)
     
     # Test translations
-    print("\n🔍 Testing translations on examples:")
+    print(f"\n🔍 Testing translations from {src_lang} to {tgt_lang}:")
     
-    test_sentences = [
-        "Hello, how are you doing today?",
-        "Machine learning is transforming the world.",
-        "I would like to learn a new language.",
-        "Artificial intelligence can help solve complex problems."
-    ]
+    test_sentences = get_test_sentences(src_lang)
     
     for sentence in test_sentences:
         inputs = tokenizer(sentence, return_tensors="pt", padding=True).to(device)
         outputs = model.generate(**inputs, max_length=128, num_beams=4)
         translation = tokenizer.decode(outputs[0], skip_special_tokens=True)
         
-        print(f"Source:      {sentence}")
-        print(f"Translation: {translation}")
+        print(f"Source ({src_lang}): {sentence}")
+        print(f"Translation ({tgt_lang}): {translation}")
         print("-" * 80)
     
     # Evaluate on test set

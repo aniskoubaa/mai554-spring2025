@@ -22,6 +22,16 @@ python train_simple_translator.py
 - `machine_translation_tutorial.py` - Python script version of the tutorial
 - `machine_translation_tutorial.ipynb` - Interactive notebook version
 
+## 🌐 Supported Language Pairs
+
+The script supports the following language pairs:
+- English to French (en-fr)
+- French to English (fr-en)
+- English to Arabic (en-ar)
+- Arabic to English (ar-en)
+
+When you run the script, you'll be prompted to choose one of these language pairs.
+
 ## 🧪 Fine-tuning Process
 
 Fine-tuning involves:
@@ -73,4 +83,5 @@ trainer.train()
 1. Fine-tune a model on a specialized domain (medical, legal, technical)
 2. Compare performance of fine-tuned models across different data sizes
 3. Create a multi-lingual fine-tuned model
-4. Implement techniques to prevent catastrophic forgetting during fine-tuning 
+4. Implement techniques to prevent catastrophic forgetting during fine-tuning
+5. Compare the performance of different language pairs and analyze the challenges of each 

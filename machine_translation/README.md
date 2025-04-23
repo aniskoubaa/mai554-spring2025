@@ -23,12 +23,16 @@ Refer to individual activity README files for specific requirements and detailed
 
 ## 🌐 Language Pairs
 
-The activities support various language pairs, including:
-- English to German
-- English to French 
-- English to Spanish
-- English to Arabic
+The activities support bidirectional translation between various language pairs, including:
+- English ↔️ French
+- English ↔️ Arabic
+- English ↔️ German
+- English ↔️ Spanish
 - And many more through pre-trained models
+
+The fine-tuning activity specifically supports training models in both directions for:
+- English ↔️ French
+- English ↔️ Arabic
 
 ## 💡 Getting Started
 
