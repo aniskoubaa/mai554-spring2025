@@ -1,24 +1,27 @@
-# 🌍 Machine Translation with Transformers 🤖
+# 🌍 Deep Learning for NLP - MAI554 Spring 2025
 
-This hands-on activity demonstrates how to use pre-trained transformer models from Hugging Face for Machine Translation and evaluate translations using the BLEU score metric.
+Welcome to the MAI554 Deep Learning course repository. This repository contains programming activities and resources for the Spring 2025 semester.
 
-## 🎯 Learning Objectives
+## 📂 Repository Structure
 
-- Learn how to use pre-trained Transformer models for machine translation
-- Understand how to evaluate machine translation with BLEU scores
-- Explore different language pairs and models
-- Learn how to push models to Hugging Face Hub for sharing
-- Understand the architecture of transformer-based translation models
+This repository is organized as follows:
 
-## 📋 Prerequisites
+```
+mai554-spring2025/
+├── machine_translation/           # Machine Translation module
+│   ├── basic_translation/         # Basic translation examples
+│   ├── translation_evaluation/    # Translation evaluation metrics
+│   ├── model_architecture/        # Translation model architecture
+│   └── fine_tuning/               # Fine-tuning translation models
+├── requirements.txt               # Shared dependencies
+└── LICENSE                        # License information
+```
 
-- Python 3.8+
-- Basic understanding of neural networks and NLP concepts
-- Hugging Face account (for pushing models to Hub)
+## 🚀 Getting Started
 
-## 🛠️ Installation
+To get started with this repository:
 
-1. Clone this repository:
+1. Clone the repository:
 ```bash
 git clone <repository-url>
 cd mai554-spring2025
@@ -29,115 +32,37 @@ cd mai554-spring2025
 pip install -r requirements.txt
 ```
 
-## 🚀 Quick Start
-
-For a simple demonstration of machine translation:
-
+3. Navigate to the module of interest (e.g., machine_translation):
 ```bash
-python simple_translation_example.py
+cd machine_translation
 ```
 
-This script translates a few English sentences to German and calculates BLEU scores.
+4. Follow the instructions in the module's README file to complete the activities.
 
-## 📓 Jupyter Notebooks
+## 📋 Modules
 
-This repository includes Jupyter notebooks that provide interactive tutorials:
+### Machine Translation with Transformers
 
+The machine translation module explores using transformer-based models for translating text between languages. It includes activities on:
+
+- Using pre-trained models for basic translation
+- Evaluating translations with metrics like BLEU score
+- Understanding transformer model architectures
+- Fine-tuning models on custom datasets
+
+To get started with this module:
 ```bash
-# Convert Python files to Jupyter notebooks
-./convert_to_notebook.sh
+cd machine_translation
 ```
 
-### Available Notebooks:
+For more details, see the [Machine Translation README](machine_translation/README.md).
 
-1. **machine_translation_tutorial.ipynb**: A step-by-step tutorial on machine translation with transformers.
-2. **translation_model_architecture.ipynb**: A detailed exploration of translation model architectures.
-
-## 🔍 Advanced Usage
-
-The main script `machine_translation_demo.py` provides more features:
-
-```bash
-python machine_translation_demo.py --model Helsinki-NLP/opus-mt-en-de --source en --target de --num_examples 5
-```
-
-### Command Line Arguments
-
-- `--model`: Hugging Face model ID (default: Helsinki-NLP/opus-mt-en-de)
-- `--source`: Source language code (default: en)
-- `--target`: Target language code (default: de)
-- `--num_examples`: Number of examples to translate and evaluate (default: 10)
-- `--save_to_hub`: Push the model to Hugging Face Hub
-- `--hub_model_id`: Model ID for Hugging Face Hub (required if save_to_hub=True)
-- `--hub_token`: Hugging Face Hub token (or you'll be prompted to log in)
-
-### Examples
-
-Translate from English to French:
-```bash
-python machine_translation_demo.py --model Helsinki-NLP/opus-mt-en-fr --source en --target fr
-```
-
-Translate more examples:
-```bash
-python machine_translation_demo.py --num_examples 20
-```
-
-Push a model to Hugging Face Hub:
-```bash
-python machine_translation_demo.py --save_to_hub --hub_model_id your-username/your-model-name
-```
-
-## 📊 Interpreting BLEU Scores
-
-BLEU (Bilingual Evaluation Understudy) is a metric for evaluating machine translations:
-
-- **0.0**: No match between the reference and translation
-- **0.0-0.3**: Low quality translation
-- **0.3-0.5**: Medium quality translation
-- **0.5-0.7**: High quality translation
-- **0.7-1.0**: Very high quality, potentially human-level translation
-
-BLEU has limitations, so it should be used alongside human evaluation for a complete assessment.
-
-## 🔄 Available Language Models
-
-Some popular Hugging Face translation models:
-
-- **Helsinki-NLP/opus-mt-en-de**: English to German
-- **Helsinki-NLP/opus-mt-en-fr**: English to French
-- **Helsinki-NLP/opus-mt-en-es**: English to Spanish
-- **Helsinki-NLP/opus-mt-en-ru**: English to Russian
-- **Helsinki-NLP/opus-mt-en-zh**: English to Chinese
-- **Helsinki-NLP/opus-mt-ar-en**: Arabic to English
-
-Explore more models at [Hugging Face Model Hub](https://huggingface.co/models?pipeline_tag=translation).
-
-## 🏗️ Translation Model Architectures
-
-The `translation_model_architecture.py` script (and notebook) explores the internal workings of translation models:
-
-- Detailed architecture of MarianMT and T5 models
-- Visualization of the attention mechanism
-- Exploration of tokenization and the translation process
-- Comparison of different model types and performance
-
-## 📝 Assignment Ideas
-
-1. Compare translation quality between different pre-trained models for the same language pair
-2. Implement another evaluation metric (like METEOR or TER) alongside BLEU
-3. Fine-tune a translation model on domain-specific data
-4. Create a simple web interface for your translator
-5. Implement back-translation as a data augmentation technique
-6. Analyze the attention patterns in transformer models for specific words or phrases
-
-## 🔗 References
+## 🔍 References
 
 - [Hugging Face Transformers Documentation](https://huggingface.co/docs/transformers/index)
-- [BLEU Score Paper](https://aclanthology.org/P02-1040.pdf)
-- [Helsinki-NLP OPUS-MT Models](https://github.com/Helsinki-NLP/OPUS-MT-train)
+- [PyTorch Documentation](https://pytorch.org/docs/stable/index.html)
 - [Attention Is All You Need](https://arxiv.org/abs/1706.03762) - The original Transformer paper
 
 ## 📜 License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
