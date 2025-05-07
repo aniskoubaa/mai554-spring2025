@@ -42,19 +42,7 @@ def display_model_architecture(model):
     print("\n🏗️ Model Architecture:")
     print("=" * 80)
     
-    # Get model summary
-    model_summary = summary(
-        model, 
-        input_data=[
-            torch.ones(1, 30, dtype=torch.long).to(device), 
-            torch.ones(1, 30, dtype=torch.long).to(device)
-        ],
-        depth=2,
-        col_names=["input_size", "output_size", "num_params", "kernel_size", "mult_adds"],
-        verbose=0
-    )
-    
-    # Count parameters
+    # Count parameters instead of using torchinfo
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     all_params = sum(p.numel() for p in model.parameters())
     
@@ -65,10 +53,11 @@ def display_model_architecture(model):
     # Display transformer blocks
     print("\nTransformer Components:")
     print("-" * 80)
-    if hasattr(model, "encoder"):
-        print(f"Encoder Layers: {len(model.encoder.block) if hasattr(model.encoder, 'block') else len(model.encoder.layers)}")
-    if hasattr(model, "decoder"):
-        print(f"Decoder Layers: {len(model.decoder.block) if hasattr(model.decoder, 'block') else len(model.decoder.layers)}")
+    if hasattr(model, "model"):
+        if hasattr(model.model, "encoder") and hasattr(model.model.encoder, "layers"):
+            print(f"Encoder Layers: {len(model.model.encoder.layers)}")
+        if hasattr(model.model, "decoder") and hasattr(model.model.decoder, "layers"):
+            print(f"Decoder Layers: {len(model.model.decoder.layers)}")
     
     print("-" * 80)
 
