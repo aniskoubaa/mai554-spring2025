@@ -81,7 +81,16 @@ trainer.train()
 ## 🔍 Assignment Ideas
 
 1. Fine-tune a model on a specialized domain (medical, legal, technical)
+   - **Hint**: Find domain-specific parallel corpora like medical papers with translations or legal documents. Compare BLEU scores before and after fine-tuning on domain-specific test sets.
+
 2. Compare performance of fine-tuned models across different data sizes
+   - **Hint**: Create subsets of your training data (e.g., 100, 500, 1000, 5000 examples) and plot a learning curve showing how performance changes with more training data.
+
 3. Create a multi-lingual fine-tuned model
+   - **Hint**: Use a model like "Helsinki-NLP/opus-mt-mul-en" that already supports multiple languages, then fine-tune it with a mixture of language pairs to improve overall performance.
+
 4. Implement techniques to prevent catastrophic forgetting during fine-tuning
+   - **Hint**: Experiment with techniques like regularization, knowledge distillation, or mixture of experts. Try using a small percentage of original training data mixed with new domain data.
+
 5. Compare the performance of different language pairs and analyze the challenges of each 
+   - **Hint**: Select language pairs with varying degrees of similarity (e.g., English-French vs. English-Arabic) and analyze where the model struggles most (e.g., word order, morphology, idioms). 

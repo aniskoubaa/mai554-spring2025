@@ -38,6 +38,19 @@ print(translated[0]['translation_text'])
 ## 🔍 Assignment Ideas
 
 1. Try translating with different pre-trained models
+   - Experiment with models like `Helsinki-NLP/opus-mt-fr-en`, `Helsinki-NLP/opus-mt-ar-en`, or `facebook/nllb-200-distilled-600M`
+   - Compare output quality across different language families
+
 2. Compare translations between different models for the same language pair
+   - Try both specialized models (Helsinki-NLP) and multilingual models (NLLB, mBART)
+   - Analyze differences in handling of idioms, technical terms, or cultural references
+
 3. Create a simple command-line translation tool
-4. Try translating text from different domains (news, technical, conversational) 
+   - Build a tool that accepts language codes as parameters
+   - Add features like batch translation from text files
+   - Implement caching to avoid re-translating the same content
+
+4. Try translating text from different domains (news, technical, conversational)
+   - Collect sample texts from various domains
+   - Analyze where models perform well or struggle
+   - Document domain-specific translation challenges 
