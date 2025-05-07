@@ -78,6 +78,93 @@ trainer = Seq2SeqTrainer(
 trainer.train()
 ```
 
+## 🤖 Understanding the Transformer Architecture
+
+In the code example above, the transformer architecture is used through the `AutoModelForSeq2SeqLM` class from Hugging Face. Let's connect the explanation to specific parts of the code:
+
+### Encoder-Decoder Structure
+- **Encoder-Decoder Loading**: `model = AutoModelForSeq2SeqLM.from_pretrained(model_name)` loads both the encoder (for input language) and decoder (for output language)
+- **Tokenizer**: `tokenizer = AutoTokenizer.from_pretrained(model_name)` prepares text for the encoder
+
+### How the Code Uses the Transformer
+```python
+# This loads the pre-trained transformer with encoder-decoder architecture
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+# The tokenizer converts text to tokens the encoder can understand
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+# During training, the model uses:
+# - Self-attention in both encoder and decoder
+# - Cross-attention from decoder to encoder output
+# - Feed-forward networks and layer normalization
+trainer.train()
+
+# When generating translations, the decoder uses beam search
+# (controlled by predict_with_generate=True in training_args)
+```
+
+### Key Components (Hidden in the Model)
+- **Self-Attention**: Allows the model to focus on different parts of the input sequence
+- **Cross-Attention**: Helps the decoder focus on relevant parts of the encoded input
+- **Feed-Forward Networks**: Process the attention outputs
+- **Layer Normalization**: Stabilizes the learning process
+
+When you fine-tune the model using `trainer.train()`, you're adjusting the weights of this pre-trained encoder-decoder architecture to better translate your specific domain or language pair.
+
+## 🧩 Understanding Hugging Face Parameters & Components
+
+### Key Hugging Face Classes Explained
+- **AutoModelForSeq2SeqLM**: Automatically loads the appropriate sequence-to-sequence model architecture based on the checkpoint name
+- **AutoTokenizer**: Converts text to token IDs and back, handling special tokens, padding, etc.
+- **Seq2SeqTrainingArguments**: Configures all training hyperparameters
+- **Seq2SeqTrainer**: Handles the training loop, evaluation, and saving checkpoints
+- **DataCollatorForSeq2Seq**: Efficiently batches examples with padding for sequence-to-sequence models
+
+### Training Parameters Explained
+```python
+training_args = Seq2SeqTrainingArguments(
+    output_dir="./results",                # Where to save model checkpoints
+    evaluation_strategy="epoch",           # Evaluate after each epoch
+    learning_rate=2e-5,                    # Small learning rate for fine-tuning
+    per_device_train_batch_size=16,        # Batch size per GPU/CPU for training
+    per_device_eval_batch_size=16,         # Batch size per GPU/CPU for evaluation
+    weight_decay=0.01,                     # L2 regularization to prevent overfitting
+    save_total_limit=3,                    # Keep only the 3 most recent checkpoints
+    num_train_epochs=3,                    # Number of training epochs
+    predict_with_generate=True,            # Use generation for evaluation metrics
+)
+```
+
+### Dataset Processing in Hugging Face
+When you see `tokenized_datasets["train"]` in the code, it refers to a dataset that has been:
+1. Loaded from a source (often using `datasets.load_dataset()`)
+2. Processed with the tokenizer to convert text to token IDs
+3. Formatted with source and target languages properly aligned
+
+Example of dataset preparation (not shown in the original code):
+```python
+# Load a dataset
+from datasets import load_dataset
+dataset = load_dataset("opus100", "en-fr")  # English-French parallel corpus
+
+# Process the dataset
+def preprocess_function(examples):
+    inputs = [ex for ex in examples["en"]]  # Source language (English)
+    targets = [ex for ex in examples["fr"]]  # Target language (French)
+    
+    # Tokenize inputs and targets
+    model_inputs = tokenizer(inputs, max_length=128, truncation=True)
+    with tokenizer.as_target_tokenizer():
+        labels = tokenizer(targets, max_length=128, truncation=True)
+    
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
+
+# Apply preprocessing and create train/validation splits
+tokenized_datasets = dataset.map(preprocess_function, batched=True)
+```
+
 ## 🔍 Assignment Ideas
 
 1. Fine-tune a model on a specialized domain (medical, legal, technical)
